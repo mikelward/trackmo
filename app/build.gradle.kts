@@ -161,6 +161,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore)
+    // Glance: the home-screen (and, where the OS allows, lock-screen) widget. It renders
+    // the persisted departures snapshot; GlanceTheme (glance core) gives light/dark colors.
+    implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
@@ -191,6 +194,11 @@ dependencies {
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.roborazzi)
+    // Glance widget layout coverage: Glance emits RemoteViews, not a Compose tree, so
+    // Roborazzi can't pixel-capture it — this harness asserts the emitted layout nodes
+    // (text, structure) per state instead, the reasonable form of screenshot coverage here.
+    testImplementation(libs.androidx.glance.testing)
+    testImplementation(libs.androidx.glance.appwidget.testing)
     // Declares the activity `createAndroidComposeRule<ComponentActivity>` launches.
     // Debug-only, and safe because unit tests run on the debug variant alone here.
     debugImplementation(libs.androidx.compose.ui.test.manifest)

@@ -42,6 +42,7 @@ import app.trackmo.ui.MainViewModel
 import app.trackmo.ui.NearbyStopsViewModel
 import app.trackmo.ui.StopRef
 import app.trackmo.ui.theme.TrackmoTheme
+import app.trackmo.widget.WidgetSnapshotStore
 import java.time.Instant
 import kotlinx.coroutines.delay
 
@@ -143,13 +144,15 @@ class MainActivity : ComponentActivity() {
      * clears the previous one (cancelling its in-flight fetch) when the set changes, rather
      * than reusing a stale one or accumulating them.
      *
-     * No persisted snapshot for this interim nearby set (`SnapshotStore.NONE`, the default):
-     * the store holds one process-wide snapshot, but the watched set here is derived from
-     * location and changes as the user moves, so restoring it would show a previous
-     * location's departures under the newly-resolved stops — and cards omit the stop name,
-     * so those rows would look like the new stops' (Codex). Proper per-set persistence (and
-     * offline last-good) returns with Phase 2's user-chosen watched stops; until then the
-     * view resolves fresh each open.
+     * The [WidgetSnapshotStore] here is save-only: it writes each authoritative snapshot to
+     * the file the widget reads (and pokes the widget to re-render) but its `load` returns
+     * null, so the in-app view does **not** restore it. That asymmetry is deliberate — the
+     * watched set here is derived from location and changes as the user moves, so restoring
+     * it in-app would show a previous location's departures under the newly-resolved stops,
+     * and cards omit the stop name so those rows would look like the new stops' (Codex).
+     * The widget wants the same last-good the app just fetched, so it gets it; the in-app
+     * view still resolves fresh each open. Proper per-set persistence (and in-app offline
+     * last-good) returns with Phase 2's user-chosen watched stops.
      */
     @Composable
     private fun DeparturesForStops(
@@ -178,6 +181,11 @@ class MainActivity : ComponentActivity() {
                         MainViewModel(
                             client = KtorTflClient(httpClient),
                             seedStops = stops,
+                            // Save-only: the app writes each fresh snapshot for the widget to
+                            // render, but this nearby set is not restored in-app (its load()
+                            // returns null) — a previous location's stops must not resurface
+                            // under a newly-resolved set.
+                            snapshotStore = WidgetSnapshotStore(applicationContext),
                             warn = ::logDepartureWarning,
                         )
                     }
