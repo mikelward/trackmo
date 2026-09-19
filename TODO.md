@@ -495,13 +495,71 @@ Builds on Phase 1's minimal line-status marking.
 
 ## Phase 4 — Widget
 
-- [ ] Glance widget rendering from the persisted snapshot (no network on the render
-      path); home-screen first.
-- [ ] Lock-screen eligibility on Android 16 QPR (standard widget, no `not_keyguard`
-      opt-out); one implementation for both placements.
-- [ ] Refresh strategy: tap, host update, bounded periodic while plausibly visible (D5);
-      staleness shown on the widget (D4).
-- [ ] Roborazzi coverage of the widget layouts (normal, stale, offline, disrupted).
+- [x] Glance widget rendering from the persisted snapshot (no network on the render
+      path); home-screen first. Tap opens the app; stamp + stale note per D4. `widgetModel`
+      (the render decision) is pure and unit-tested; the layout is node-tested via Glance's
+      unit-test harness (see below). A device eyeball of the real rendering is still owed.
+- [x] Lock-screen eligibility on Android 16 QPR (standard widget, no `not_keyguard`
+      opt-out); one implementation for both placements. `widgetCategory="home_screen|keyguard"`
+      in the provider info — placement needs a real Android 16 QPR device to confirm.
+- [ ] Refresh strategy beyond app-driven push (decided 2026-09-19 — see *Widget follow-ups*
+      below). The app calls `updateAll` on every fetch, so the widget follows the app's last
+      refresh; `updatePeriodMillis=0`. A widget on a phone whose app is never reopened keeps
+      its stamp until a host bind. The agreed shape is a follow-up PR: refresh-on-unlock by
+      default, plus an opt-in "Live widget" setting driving a sustained ~1–2 min loop for the
+      always-on kiosk.
+- [x] Layout coverage of the widget states — Glance emits RemoteViews, not a Compose tree, so
+      Roborazzi can't pixel-capture it; `WidgetContentTest` uses Glance's own unit-test harness
+      (`runGlanceAppWidgetUnitTest`, under Robolectric for a real `Bundle`) to assert the emitted
+      layout nodes for the no-data, no-rows, stale-empty, fresh-row, and stale-withheld states.
+      Runs in the ordinary `build` test job (not a Roborazzi record test, so no CI allow-list
+      entry). Pixel-level Roborazzi and an on-device eyeball are still owed.
+- [ ] Widget feeds off the interim *nearby* set (the last stops the app fetched), via a
+      save-only `WidgetSnapshotStore`. Replace with Phase 2's user-chosen watched stops so
+      the widget shows a stable set rather than "wherever you last opened the app".
+
+### Widget follow-ups (decided with the maintainer 2026-09-19)
+
+The widget review surfaced findings that push against the **persisted snapshot's deliberate
+design** (`DeparturesSnapshot` KDoc: it carries *only* the honest last-good departures and
+each stop's age — never transient disruption/line-status or refresh-failure state, because a
+persisted point-in-time closure or line status ages into a claim we can't stand behind).
+The maintainer settled each; #44 ships the render surface with the honest fixes (per-row stale
+withhold, explicit empty states, fresh-before-truncate cap, corruption logging, layout tests),
+and these carry the rest as their own PRs:
+
+- [ ] **Widget refresh (own PR).** Default: refresh on unlock (`ACTION_USER_PRESENT`, a
+      manifest receiver — one fetch when the device is unlocked to check; battery-negligible
+      because it piggybacks on active use rather than waking the radio from idle; cellular
+      data is the only real cost, ~2–5 MB/day, gate on WiFi/charging if wanted). Opt-in
+      **"Live widget" setting (off by default)**: a foreground-service loop that refreshes +
+      re-renders every ~1–2 min (interval a small set: 1/2/5 min) while the screen is on, for
+      the always-on kiosk/lock-screen wall display that never fires unlock. Motion-triggered
+      refresh is a *future supplement* only (it shows stale data for the first seconds after
+      someone walks up, so the periodic loop stays the reliable core). This is what makes the
+      lock-screen widget genuinely fresh.
+- [ ] **Carry disruption / line-status into the widget (own PR).** Maintainer: *yes, but a
+      follow-up.* The widget's `across(...)` runs with empty `lineStatuses` and the snapshot
+      has no disruptions, so a delayed/suspended service can show a normal-looking countdown.
+      Requires the snapshot to persist an age-stamped status (a deliberate reversal of the
+      `DeparturesSnapshot` KDoc, so `SPEC.md` records the reasoning). The per-row stale
+      withhold (landed) already stops *old* numbers reading as live; this marks a *fresh*
+      disrupted service on the widget.
+- [ ] **Persist a refresh-failure kind for the widget (own PR, rides with the above).** Same
+      schema reversal: the snapshot excludes the transient refresh-failure flag by design, so
+      the widget can't say *why* data is old beyond the age stamp. Add a typed failure to the
+      persisted schema so the widget can render offline/rate-limited/unreachable.
+- [ ] **Deduplicate the widget's nearby set before the cap (own PR, Codex P2 on #44).** The
+      in-app view calls `DepartureRows.nearbyDeduped(stopDistanceMeters)` so a line served by
+      several adjacent stops collapses to its nearest stop; the widget renders from the
+      persisted snapshot, which carries no distances, so it can't. Fix needs persisting the
+      distances (or a widget-ready deduplicated selection) alongside the snapshot — a
+      selection/schema decision, and moot once Phase 2's watched stops replace the interim
+      nearby source. Until then adjacent stops can double up a line/direction in the six slots.
+- [ ] **Size-aware row cap (own PR, Codex P2 on #44).** The fixed 6-row cap can clip at the
+      110dp minimum height; derive the count from `LocalSize`. The node-assertion harness that
+      landed can't verify "doesn't clip" (it asserts nodes, not pixels), so this waits on
+      pixel rendering or a device check.
 
 ## Phase 5 — Distribution and polish
 

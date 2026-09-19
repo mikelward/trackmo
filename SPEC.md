@@ -323,6 +323,16 @@ code path to maintain. Trackmo does **not** opt out of lock-screen placement (th
 (Android 14 / API 34); the lock-screen *placement* simply appears on devices new enough
 to offer it.
 
+The widget renders the **persisted last-good snapshot** the app writes — never the
+network. It reads the snapshot once when the host asks it to update and renders from it,
+so it can't stall on a fetch, and it stamps the data's age and marks it stale rather than
+passing old times off as live (D4). The app pushes an update whenever it fetches, so the
+widget follows the app's last refresh rather than waking on the OS's periodic schedule
+(battery). **Interim data source**: until Phase 2's user-chosen watched stops exist, the
+widget shows the last *nearby* set the app fetched — "the stops near where you last
+opened the app". Phase 2 replaces that with the watched stops; a live-refresh cadence for
+the widget when the app isn't driving it is deferred (D5).
+
 ## Privacy
 
 Trackmo handles location and the set of stops the user watches — which together reveal
