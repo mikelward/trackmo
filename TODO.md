@@ -825,7 +825,8 @@ fix lands in the shared layer, not per-surface. Raised in chat 2026-09-19.
   - [x] **From… To…, direct only** (maintainer, 2026-09-24): the overflow's *Find a station* is
         now *From…*, and a station's page has *To…*, which keeps only the departures whose own
         line's route calls at the picked destination (`DirectTrips.filter`), flagging any it
-        couldn't check.
+        couldn't check. *(Superseded: both To…s now open the trip planner, below; the direct-only
+        page is left to delete.)*
     - [ ] **Trips with a change** (maintainer, 2026-09-24; designed 2026-09-26, SPEC *Trips with a
           change*): *To…* a stop plans with TfL's Journey Planner, lists routes best first (checked and open, then unchecked, then not running; within each,
           fully live, then est., then withheld; then earliest arrival) as
@@ -840,7 +841,13 @@ fix lands in the shared layer, not per-surface. Raised in chat 2026-09-19.
             destination), from the list's few-minute cache; not yet fetched.
       - [ ] **Gray unreachable trains in the leg-by-leg cards** (the list's first-leg row does).
       - [ ] **"From" chip on the destination search** naming the start ("Here" or the station).
-      - [ ] **Station page's own *To…*** still shows direct trains only; move it to trips.
+      - [x] **Station page's own *To…*** plans trips as the near-me list's does (the station page's
+            *To…* has opened the trip planner since *Plan trips with a change from To…*).
+      - [ ] **Delete the unreachable direct-trips page path**: `LookDepartures`' `destination` and
+            `hereTiers` are always null now. Delete their branches and everything only they reach
+            (find it by a repo-wide search: `rememberTripView`, `tripMessages`, `tripLoaded`,
+            `hereTripTiers`/`HereTripTiers`, `DirectTrips.lineIds` so far), with its tests. Keep
+            what the planner calls: `DirectTrips.filter`, `rememberLineSequences`, `hereOriginIds`.
       - [x] **Plan to every station of a complex** (maintainer, 2026-09-26: the best way to King's
             Cross St. Pancras whatever the line or mode): once per station code plus one bus
             stop, in parallel, merged, the soonest six routes timed.
