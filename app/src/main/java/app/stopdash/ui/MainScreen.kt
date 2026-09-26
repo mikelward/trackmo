@@ -11,6 +11,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import app.stopdash.domain.AlertLinks
+import app.stopdash.domain.AlertStops
 import app.stopdash.domain.ClosedNotice
 import app.stopdash.domain.NoticePlan
 import app.stopdash.domain.isPole
@@ -3835,6 +3836,19 @@ internal fun RouteDetailScreen(
         loadRouteStops != null -> loadRouteStops(routeStopsRetry)
         else -> rememberRouteStops(row, followed, routeStopsRetry)
     }
+    // A first guess at the stretch the line's alert is about: the listed stations its prose names
+    // (SPEC *Disruptions*). Only for a shown alert, so a dismissed one leaves the page unmarked too.
+    // A status row (no train to follow) has no stop list, so the line's stations are loaded just to
+    // name them; they aren't listed, since which direction or branch to list is a guess.
+    val lineStops = rememberLineStops(
+        row.lineId,
+        wanted = stops == RouteStopsUi.Hidden && row.upcoming.isEmpty() && row.status?.fullText != null,
+    )
+    val alertStops = remember(row.status?.fullText, stops, lineStops) {
+        val listed = (stops as? RouteStopsUi.Loaded)?.stops ?: lineStops
+        val ids = AlertStops.mentioned(row.status?.fullText, listed)
+        listed.filter { it.id in ids }
+    }
     // Every upcoming train on the followed route, not the card's first few — TfL predicts ~30 min
     // ahead, and the page has the room (SPEC *Route detail*).
     val topology = LocalRouteTopology.current
@@ -3991,7 +4005,25 @@ internal fun RouteDetailScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(modifier = Modifier.weight(1f)) { DisruptionChip(status.description) }
+                    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                        DisruptionChip(status.description)
+                        // Where it is, beside what it is: the stations the alert names, in route order,
+                        // each by the part a rider reads on the stop (a bus stop's own name, not its
+                        // cross street), as the alert itself names them.
+                        if (alertStops.isNotEmpty()) {
+                            Text(
+                                // Each name once: a bus line's stops on both sides of the road are
+                                // separate ids under one name, and both are matched.
+                                text = alertStops.map { stop ->
+                                    stop.name.substringBefore(" / ").trim().ifBlank { stop.name.ifBlank { stop.id } }
+                                }.distinct().joinToString(", "),
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    }
                     if (onDismissAlert != null) {
                         IconButton(onClick = onDismissAlert) {
                             Icon(
@@ -4092,6 +4124,7 @@ internal fun RouteDetailScreen(
                 // between two shared stops are one journey, and so is its way back from the poles
                 // across the road — so any of those pages shows (and toggles) the same star.
                 starredStopIds = journeysHere.values.flatMapTo(mutableSetOf()) { it },
+                alertStopIds = remember(alertStops) { alertStops.mapTo(HashSet()) { it.id } },
                 onDismissJourneyTip = onDismissJourneyTip,
                 onToggleJourneyTo = onToggleJourney
                     ?.takeIf { row.lineId.isNotBlank() && (Connections.isRail(rowMode, row.lineId) || rowMode.equals("bus", ignoreCase = true)) }
