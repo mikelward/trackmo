@@ -841,7 +841,8 @@ kept on the device with the rest of the user's config and never logged (*Privacy
 
 ### Trips with a change
 
-*Planned* (maintainer, 2026-09-26; mocked the same day). *To…* plans a trip to a **stop** — a station
+*Planned* (maintainer, 2026-09-26; mocked the same day). *To…* — on the near-me list, one tap on the
+app bar's **Directions** button (maintainer, 2026-09-26; the overflow keeps its *To…* too) — plans a trip to a **stop** — a station
 or bus stop picked from the station search, never an address or a map point — from the rider's
 nearest stop of any mode (the Planner walks on to a better one itself), or from the *From…* station when one is set. The search page keeps its look (each
 result's name over its modes); it gains only a "From" chip naming the start ("Here", or the *From…*
@@ -1147,7 +1148,8 @@ than showing normal-looking times whose disruption status was never actually che
 
 Live predictions go stale within about a minute, and no surface may present stale data
 as if it were live (see **D4**). Every surface stamps what it shows with the age of the
-fetch ("updated just now", "2 min ago") and recomputes each countdown from that fetch
+fetch ("Just now", "2 min ago" — the app bar's stamp is the age alone, with no "Updated" to
+take up room; maintainer, 2026-09-26) and recomputes each countdown from that fetch
 time as the clock advances — so "3 min" becomes "1 min" between network calls without a
 new request, and the numbers stay honest.
 
