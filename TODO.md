@@ -840,6 +840,9 @@ fix lands in the shared layer, not per-surface. Raised in chat 2026-09-19.
             destination), from the list's few-minute cache; not yet fetched.
       - [ ] **Gray unreachable trains in the leg-by-leg cards** (the list's first-leg row does).
       - [ ] **"From" chip on the destination search** naming the start ("Here" or the station).
+      - [ ] **Borrow from the other search's recent list** (maintainer, 2026-09-26): *From…* and
+            *To…* keep separate recents, ordered by last use; maybe a single button to swap in the
+            other list, or a way to pick from it (the station you came from as the way home).
       - [ ] **Station page's own *To…*** still shows direct trains only; move it to trips.
       - [x] **Plan to every station of a complex** (maintainer, 2026-09-26: the best way to King's
             Cross St. Pancras whatever the line or mode): once per station code plus one bus
